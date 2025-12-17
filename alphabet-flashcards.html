@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arabisches Alphabet Flashcards - Phase 6</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --success: #27ae60;
+            --danger: #c0392b;
+            --bg: #f4f7f6;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        /* Controls Area */
+        .controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+        }
+
+        button.reset-btn {
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        /* Stats Bar */
+        .stats-container {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .stat-box {
+            flex: 1;
+            text-align: center;
+            background: #ddd;
+            padding: 5px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            position: relative;
+        }
+        
+        .stat-box.active {
+            background: var(--accent);
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Flashcard Container */
+        .scene {
+            width: 300px;
+            height: 400px;
+            perspective: 600px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .card.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card__face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            background: var(--card-bg);
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .card__face--back {
+            transform: rotateY(180deg);
+            background: #fdfdfd;
+            border: 2px solid var(--accent);
+        }
+
+        /* Typography inside Card */
+        .card-label {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .card-content {
+            font-size: 2rem;
+            font-weight: bold;
+            word-wrap: break-word;
+        }
+
+        .arabic-text {
+            font-family: "Traditional Arabic", "Scheherazade New", serif;
+            font-size: 5rem; /* Viel größer für Arabisch */
+            line-height: 1.2;
+            direction: rtl;
+        }
+
+        .ipa-text {
+            font-family: 'Courier New', monospace;
+            color: #555;
+        }
+
+        .hint-text {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 15px;
+        }
+
+        /* Action Buttons */
+        .actions {
+            display: flex;
+            gap: 20px;
+        }
+
+        .btn {
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .btn-know {
+            background-color: var(--success);
+        }
+
+        .btn-dont-know {
+            background-color: var(--danger);
+        }
+
+        /* Hide actions initially */
+        .hidden {
+            display: none !important;
+        }
+
+        .instruction {
+            color: #7f8c8d;
+            font-style: italic;
+            margin-top: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Arabisch Trainer</h1>
+
+    <div class="controls">
+        <div>
+            <label>Frage:</label>
+            <select id="questionField">
+                <option value="nr">Nr. (Ordnungszahl)</option>
+                <option value="name">Name (z.B. Alif)</option>
+                <option value="iso">Isoliert ({{ar|...}})</option>
+                <option value="ipa">IPA Lautschrift</option>
+                <option value="dmg">DMG Umschrift</option>
+            </select>
+        </div>
+        <div>
+            <label>Antwort:</label>
+            <select id="answerField">
+                <option value="iso" selected>Isoliert ({{ar|...}})</option>
+                <option value="name">Name</option>
+                <option value="nr">Nr. (Ordnungszahl)</option>
+                <option value="forms">Alle Formen (Iso/Init/Med/Fin)</option>
+                <option value="full">Vollständige Info</option>
+            </select>
+        </div>
+        <button class="reset-btn" onclick="resetProgress()">Fortschritt löschen</button>
+    </div>
+
+    <div class="stats-container" id="statsBar">
+        </div>
+
+    <div class="scene">
+        <div class="card" id="flashcard">
+            <div class="card__face card__face--front">
+                <div class="card-label" id="qLabel">Frage</div>
+                <div class="card-content" id="qContent">Lade...</div>
+                <div class="instruction">Klicken zum Umdrehen</div>
+            </div>
+            <div class="card__face card__face--back">
+                <div class="card-label" id="aLabel">Antwort</div>
+                <div class="card-content" id="aContent">...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="btn btn-dont-know" id="btnWrong" onclick="handleResult(false)">Wusste ich nicht</button>
+        <button class="btn btn-know" id="btnRight" onclick="handleResult(true)">Wusste ich</button>
+    </div>
+
+<script>
+    /**
+     * VOLLSTÄNDIGE DATENBASIS
+     * Basierend auf der Wikipedia-Tabelle
+     */
+    const arabicData = [
+        {
+            nr: "1",
+            name: "Alif",
+            iso: "ﺍ",
+            init: "ﺍ",
+            med: "ﺎ",
+            fin: "ﺎ",
+            dmg: "a, ā, i, u",
+            desc: "langes a oder am Wortanfang Hamzaträger ohne eigenen Lautwert",
+            ipa: "a, aː, ɑ, ɑː, i, ɨ, u",
+            val: 1,
+            no_left_connect: true
+        },
+        {
+            nr: "2",
+            name: "Bā'",
+            iso: "ﺏ",
+            init: "ﺑ",
+            med: "ﺒ",
+            fin: "ﺐ",
+            dmg: "b",
+            desc: "b",
+            ipa: "b",
+            val: 2
+        },
+        {
+            nr: "3",
+            name: "Tā'",
+            iso: "ﺕ",
+            init: "ﺗ",
+            med: "ﺘ",
+            fin: "ﺖ",
+            dmg: "t",
+            desc: "t",
+            ipa: "t",
+            val: 400
+        },
+        {
+            nr: "4",
+            name: "Thā'",
+            iso: "ﺙ",
+            init: "ﺛ",
+            med: "ﺜ",
+            fin: "ﺚ",
+            dmg: "ṯ",
+            desc: "stimmloses englisches th wie in „think“",
+            ipa: "θ",
+            val: 500
+        },
+        {
+            nr: "5",
+            name: "Dschīm",
+            iso: "ﺝ",
+            init: "ﺟ",
+            med: "ﺠ",
+            fin: "ﺞ",
+            dmg: "ǧ",
+            desc: "stimmhaftes dsch (in Ägypten stattdessen als g ausgesprochen)",
+            ipa: "d͡ʒ",
+            val: 3
+        },
+        {
+            nr: "6",
+            name: "Ḥā'",
+            iso: "ﺡ",
+            init: "ﺣ",
+            med: "ﺤ",
+            fin: "ﺢ",
+            dmg: "ḥ",
+            desc: "scharfes h, Rachen im Vergleich zu deutschen Aussprache eingeengt",
+            ipa: "ħ",
+            val: 8
+        },
+        {
+            nr: "7",
+            name: "Chā'",
+            iso: "ﺥ",
+            init: "ﺧ",
+            med: "ﺨ",
+            fin: "ﺦ",
+            dmg: "ḫ",
+            desc: "am Gaumenzäpfchen gebildetes ch wie in „ach“",
+            ipa: "χ",
+            val: 600
+        },
+        {
+            nr: "8",
+            name: "Dāl",
+            iso: "ﺩ",
+            init: "ﺩ",
+            med: "ﺪ",
+            fin: "ﺪ",
+            dmg: "d",
+            desc: "d",
+            ipa: "d",
+            val: 4,
+            no_left_connect: true
+        },
+        {
+            nr: "9",
+            name: "Dhāl",
+            iso: "ﺫ",
+            init: "ﺫ",
+            med: "ﺬ",
+            fin: "ﺬ",
+            dmg: "ḏ",
+            desc: "stimmhaftes englisches th wie in „this“",
+            ipa: "ð",
+            val: 700,
+            no_left_connect: true
+        },
+        {
+            nr: "10",
+            name: "Rā'",
+            iso: "ﺭ",
+            init: "ﺭ",
+            med: "ﺮ",
+            fin: "ﺮ",
+            dmg: "r",
+            desc: "Zungenspitzen-r",
+            ipa: "r",
+            val: 200,
+            no_left_connect: true
+        },
+        {
+            nr: "11",
+            name: "Zāy",
+            iso: "ﺯ",
+            init: "ﺯ",
+            med: "ﺰ",
+            fin: "ﺰ",
+            dmg: "z",
+            desc: "stimmhaftes s",
+            ipa: "z",
+            val: 7,
+            no_left_connect: true
+        },
+        {
+            nr: "12",
+            name: "Sīn",
+            iso: "ﺱ",
+            init: "ﺳ",
+            med: "ﺴ",
+            fin: "ﺲ",
+            dmg: "s",
+            desc: "stimmloses s",
+            ipa: "s",
+            val: 60
+        },
+        {
+            nr: "13",
+            name: "Schīn",
+            iso: "ﺵ",
+            init: "ﺷ",
+            med: "ﺸ",
+            fin: "ﺶ",
+            dmg: "š",
+            desc: "stimmloses deutsches sch",
+            ipa: "ʃ",
+            val: 300
+        },
+        {
+            nr: "14",
+            name: "Ṣād",
+            iso: "ﺹ",
+            init: "ﺻ",
+            med: "ﺼ",
+            fin: "ﺺ",
+            dmg: "ṣ",
+            desc: "emphatisches, d. h. mit versteifter Zunge artikuliertes s",
+            ipa: "sˁ",
+            val: 90
+        },
+        {
+            nr: "15",
+            name: "Ḍād",
+            iso: "ﺽ",
+            init: "ﺿ",
+            med: "ﻀ",
+            fin: "ﺾ",
+            dmg: "ḍ",
+            desc: "emphatisches, d. h. mit versteifter Zunge artikuliertes d",
+            ipa: "dˁ",
+            val: 800
+        },
+        {
+            nr: "16",
+            name: "Ṭā'",
+            iso: "ﻁ",
+            init: "ﻃ",
+            med: "ﻄ",
+            fin: "ﻂ",
+            dmg: "ṭ",
+            desc: "emphatisches, d. h. mit versteifter Zunge artikuliertes t",
+            ipa: "tˁ",
+            val: 9
+        },
+        {
+            nr: "17",
+            name: "Ẓā'",
+            iso: "ﻅ",
+            init: "ﻇ",
+            med: "ﻈ",
+            fin: "ﻆ",
+            dmg: "ẓ",
+            desc: "emphatisches, d. h. mit versteifter Zunge artikuliertes stimmhaftes ð (th in englisch „the“)",
+            ipa: "ðˁ",
+            val: 900
+        },
+        {
+            nr: "18",
+            name: "ʿAin",
+            iso: "ﻉ",
+            init: "ﻋ",
+            med: "ﻌ",
+            fin: "ﻊ",
+            dmg: "ʿ",
+            desc: "im Kehlkopf erzeugter stimmhafter Reibelaut",
+            ipa: "ʕ",
+            val: 70
+        },
+        {
+            nr: "19",
+            name: "Ghain",
+            iso: "ﻍ",
+            init: "ﻏ",
+            med: "ﻐ",
+            fin: "ﻎ",
+            dmg: "ġ",
+            desc: "am Gaumenzäpfchen erzeugter stimmhafter Reibelaut (ch in „Dach“ aber stimmhaft)",
+            ipa: "ɣ",
+            val: 1000
+        },
+        {
+            nr: "20",
+            name: "Fā'",
+            iso: "ﻑ",
+            init: "ﻓ",
+            med: "ﻔ",
+            fin: "ﻒ",
+            dmg: "f",
+            desc: "f",
+            ipa: "f",
+            val: 80
+        },
+        {
+            nr: "21",
+            name: "Qāf",
+            iso: "ﻕ",
+            init: "ﻗ",
+            med: "ﻘ",
+            fin: "ﻖ",
+            dmg: "q",
+            desc: "stimmloser Verschlusslaut, gebildet am Gaumenzäpfchen wie das ch in „Dach“",
+            ipa: "q",
+            val: 100
+        },
+        {
+            nr: "22",
+            name: "Kāf",
+            iso: "ﻙ",
+            init: "ﻛ",
+            med: "ﻜ",
+            fin: "ﻚ",
+            dmg: "k",
+            desc: "k",
+            ipa: "k",
+            val: 20
+        },
+        {
+            nr: "23",
+            name: "Lām",
+            iso: "ﻝ",
+            init: "ﻟ",
+            med: "ﻠ",
+            fin: "ﻞ",
+            dmg: "l",
+            desc: "l",
+            ipa: "l",
+            val: 30
+        },
+        {
+            nr: "24",
+            name: "Mīm",
+            iso: "ﻡ",
+            init: "ﻣ",
+            med: "ﻤ",
+            fin: "ﻢ",
+            dmg: "m",
+            desc: "m",
+            ipa: "m",
+            val: 40
+        },
+        {
+            nr: "25",
+            name: "Nūn",
+            iso: "ﻥ",
+            init: "ﻧ",
+            med: "ﻨ",
+            fin: "ﻦ",
+            dmg: "n",
+            desc: "n",
+            ipa: "n",
+            val: 50
+        },
+        {
+            nr: "26",
+            name: "Hā'",
+            iso: "ﻩ",
+            init: "ﻫ",
+            med: "ﻬ",
+            fin: "ﻪ",
+            dmg: "h",
+            desc: "h",
+            ipa: "h",
+            val: 5
+        },
+        {
+            nr: "27",
+            name: "Wāw",
+            iso: "ﻭ",
+            init: "ﻭ",
+            med: "ﻮ",
+            fin: "ﻮ",
+            dmg: "w, ū, u",
+            desc: "englisches w, langes u oder im au-Diphthong",
+            ipa: "w, u, uː",
+            val: 6,
+            no_left_connect: true
+        },
+        {
+            nr: "28",
+            name: "Yā'",
+            iso: "ي",
+            init: "ﻳ",
+            med: "ﻴ",
+            fin: "ﻲ",
+            dmg: "y, ī, i",
+            desc: "j (englisches konsonantisches y), langes i oder im ai-Diphthong",
+            ipa: "j, i, iː, ɨ, ɨː",
+            val: 10
+        },
+        {
+            nr: "-",
+            name: "Tā' marbūta",
+            iso: "ة",
+            init: "–",
+            med: "–",
+            fin: "ـة",
+            dmg: "-t, -a, (-h)",
+            desc: "Nur am Wortende. Bezeichnet meist die Femininendung -a(t).",
+            ipa: "t, a",
+            val: "-"
+        }
+    ];
+
+    // State Variables
+    let currentCardIndex = null;
+    let cardState = {}; // { index: boxNumber } (1 to 6)
+    let isFlipped = false;
+
+    // DOM Elements
+    const cardEl = document.getElementById('flashcard');
+    const btnWrong = document.getElementById('btnWrong');
+    const btnRight = document.getElementById('btnRight');
+    const qFieldSel = document.getElementById('questionField');
+    const aFieldSel = document.getElementById('answerField');
+    const statsBar = document.getElementById('statsBar');
+    
+    // Labels
+    const qLabel = document.getElementById('qLabel');
+    const qContent = document.getElementById('qContent');
+    const aLabel = document.getElementById('aLabel');
+    const aContent = document.getElementById('aContent');
+
+    // --- Initialization ---
+    function init() {
+        loadProgress();
+        renderStats();
+        pickNextCard();
+
+        // Event Listeners
+        cardEl.addEventListener('click', flipCard);
+        qFieldSel.addEventListener('change', () => { renderCard(); });
+        aFieldSel.addEventListener('change', () => { renderCard(); });
+    }
+
+    // --- Storage & Phase 6 Logic ---
+    function loadProgress() {
+        const stored = localStorage.getItem('arabic_flashcards_progress');
+        if (stored) {
+            cardState = JSON.parse(stored);
+        } else {
+            // Initialize all to Box 1
+            arabicData.forEach((_, idx) => {
+                cardState[idx] = 1;
+            });
+        }
+    }
+
+    function saveProgress() {
+        localStorage.setItem('arabic_flashcards_progress', JSON.stringify(cardState));
+        renderStats();
+    }
+
+    function resetProgress() {
+        if(confirm("Wirklich den gesamten Lernfortschritt löschen? Alle Karten landen wieder in Fach 1.")) {
+            localStorage.removeItem('arabic_flashcards_progress');
+            loadProgress();
+            renderStats();
+            pickNextCard();
+        }
+    }
+
+    function getBoxCounts() {
+        let counts = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0};
+        Object.values(cardState).forEach(box => {
+            if(counts[box] !== undefined) counts[box]++;
+        });
+        return counts;
+    }
+
+    function renderStats() {
+        const counts = getBoxCounts();
+        statsBar.innerHTML = '';
+        for(let i=1; i<=6; i++) {
+            const div = document.createElement('div');
+            div.className = 'stat-box';
+            div.innerText = `Fach ${i}: ${counts[i]}`;
+            if(currentCardIndex !== null && cardState[currentCardIndex] === i) {
+                div.classList.add('active');
+            }
+            statsBar.appendChild(div);
+        }
+    }
+
+    // --- Core Logic ---
+
+    function pickNextCard() {
+        // Simple Leitner Strategy:
+        // Find the lowest box that has cards. Pick a random card from that box.
+        // This forces mastery of Box 1 before moving to Box 2 mostly.
+        
+        // Group indices by box
+        let boxes = {1:[], 2:[], 3:[], 4:[], 5:[], 6:[]};
+        arabicData.forEach((_, idx) => {
+            const box = cardState[idx] || 1;
+            boxes[box].push(idx);
+        });
+
+        // Find lowest non-empty box
+        let targetBox = 1;
+        while(targetBox <= 6 && boxes[targetBox].length === 0) {
+            targetBox++;
+        }
+
+        if (targetBox > 6) {
+            // All cards mastered? Just pick from random box or Box 6 for review
+            // For now, let's reset to random choice from Box 6
+            targetBox = 6; 
+        }
+
+        const candidates = boxes[targetBox];
+        if(candidates.length === 0) {
+            // Should technically not happen unless array empty
+            alert("Fehler: Keine Karten gefunden.");
+            return;
+        }
+
+        // Random pick from candidates
+        const randIndex = Math.floor(Math.random() * candidates.length);
+        currentCardIndex = candidates[randIndex];
+
+        // Reset UI
+        isFlipped = false;
+        cardEl.classList.remove('is-flipped');
+        btnWrong.classList.add('hidden');
+        btnRight.classList.add('hidden');
+        
+        renderCard();
+        renderStats(); // To update active box highlight
+    }
+
+    function renderCard() {
+        if (currentCardIndex === null) return;
+        const data = arabicData[currentCardIndex];
+
+        // Question Side
+        const qType = qFieldSel.value;
+        qLabel.innerText = getLabelName(qType);
+        qContent.innerHTML = formatContent(data, qType);
+
+        // Answer Side
+        const aType = aFieldSel.value;
+        aLabel.innerText = getLabelName(aType);
+        aContent.innerHTML = formatContent(data, aType);
+    }
+
+    function getLabelName(type) {
+        switch(type) {
+            case 'nr': return "Nummer";
+            case 'name': return "Name";
+            case 'iso': return "Isolierte Form";
+            case 'ipa': return "IPA Aussprache";
+            case 'dmg': return "DMG Umschrift";
+            case 'forms': return "Formen";
+            case 'full': return "Details";
+            default: return "";
+        }
+    }
+
+    function formatContent(data, type) {
+        // Helper for Arabic styling
+        const ar = (text) => `<span class="arabic-text">${text || '-'}</span>`;
+        
+        switch(type) {
+            case 'nr': 
+                return `<div style="font-size: 3rem;">${data.nr}</div>`;
+            case 'name': 
+                return `<div>${data.name}</div>`;
+            case 'iso': 
+                return ar(data.iso);
+            case 'ipa': 
+                return `<div class="ipa-text" style="font-size: 1.5rem;">[${data.ipa}]</div>`;
+            case 'dmg': 
+                return `<div style="font-style: italic; font-size: 1.5rem;">${data.dmg}</div>`;
+            case 'forms':
+                return `
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; direction: rtl;">
+                        <div><small>Iso</small><br>${ar(data.iso)}</div>
+                        <div><small>Init</small><br>${ar(data.init)}</div>
+                        <div><small>Med</small><br>${ar(data.med)}</div>
+                        <div><small>Fin</small><br>${ar(data.fin)}</div>
+                    </div>
+                `;
+            case 'full':
+                return `
+                    <div style="font-size: 1rem; text-align: left; line-height: 1.6;">
+                        <strong>Name:</strong> ${data.name}<br>
+                        <strong>IPA:</strong> <span class="ipa-text">[${data.ipa}]</span><br>
+                        <strong>Beschreibung:</strong> ${data.desc}<br>
+                        <hr>
+                        <div style="display:flex; justify-content:space-around; direction:rtl;">
+                            <span>${ar(data.iso)}</span> <span>${ar(data.init)}</span> <span>${ar(data.med)}</span> <span>${ar(data.fin)}</span>
+                        </div>
+                    </div>
+                `;
+            default: return "Fehler";
+        }
+    }
+
+    function flipCard() {
+        if (isFlipped) return; // Already flipped
+        isFlipped = true;
+        cardEl.classList.add('is-flipped');
+        
+        // Show buttons after short delay
+        setTimeout(() => {
+            btnWrong.classList.remove('hidden');
+            btnRight.classList.remove('hidden');
+        }, 300);
+    }
+
+    function handleResult(known) {
+        const currentBox = cardState[currentCardIndex];
+        let newBox = currentBox;
+
+        if (known) {
+            // Move up, max 6
+            if (newBox < 6) newBox++;
+        } else {
+            // Reset to 1
+            newBox = 1;
+        }
+
+        cardState[currentCardIndex] = newBox;
+        saveProgress();
+        
+        // Next card
+        pickNextCard();
+    }
+
+    // Start
+    init();
+
+</script>
+</body>
+</html>
